@@ -1,0 +1,10 @@
+core
+.cproject
+startup/*
+Debug/
+Drivers/*
+Middlewares/*
+.mxproject
+.project
+.settings/*
+STM32F4DISCOVERY.xml
