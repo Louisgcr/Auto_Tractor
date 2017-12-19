@@ -11,7 +11,7 @@ void lowLevelInit(void){
 	MX_GPIO_Init(); 				// GPIO init
 	MX_CAN1_Init(); 				// CAN init
 	MX_USB_DEVICE_Init();  			// virtual comp port init 
-	//MX_ADC1_Init(); 				// ADC init
+	MX_ADC1_Init(); 				// ADC init
 	                  
 }
 
@@ -91,7 +91,7 @@ void MX_ADC1_Init(void)
 	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
 	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
 	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.NbrOfConversion = 3;
 	hadc1.Init.DMAContinuousRequests = DISABLE;
 	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 	if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -101,13 +101,15 @@ void MX_ADC1_Init(void)
 
 	/**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
 	*     */
-	sConfig.Channel = ADC_CHANNEL_3;
+	sConfig.Channel = ADC_CHANNEL_0;
 	sConfig.Rank = 1;
 	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
 	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
 	{
 	_Error_Handler(__FILE__, __LINE__);
 	}
+
+	HAL_ADC_Start_IT(&hadc1);
 
 }
 
@@ -140,6 +142,59 @@ void MX_CAN1_Init(void)
 
 
 }
+
+void MX_TIM3_Init(void){
+
+	//TODO check if GPIO is init properly
+	  TIM_MasterConfigTypeDef sMasterConfig;
+	  TIM_OC_InitTypeDef sConfigOC;
+	  //TODO Check if need to enable
+	  /* Tim3 is connected to APB1 bus which runs at 42Mhz. But it has an internal PPL that brings it up to 84Mhz
+	   * Prescaller is set to 0, hence timer_tick_frequemcy =  84000000/(0+1)=84000000
+	  */
+	  //RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	  htim3.Instance = TIM3;
+	  htim3.Init.Prescaler = 0;
+	  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+	  /* Tim3 is a 16 bit counter hence = 65535
+	   * PWM_frequemcy = timer_tick_frequency / (TIM_Period + 1)
+	   * Assuming PWM Frequency = 10k
+	   * TIM_Period = 84000000/10000 -1 = 8399
+	   * */
+	  htim3.Init.Period = PWM_Period;
+	  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+	  {
+	    _Error_Handler(__FILE__, __LINE__);
+	  }
+
+	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+	  {
+	    _Error_Handler(__FILE__, __LINE__);
+	  }
+
+	  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	  sConfigOC.Pulse = 0;
+	  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+	  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+	  {
+	    _Error_Handler(__FILE__, __LINE__);
+	  }
+
+	  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+	  {
+	    _Error_Handler(__FILE__, __LINE__);
+	  }
+
+	  //HAL_TIM_MspPostInit(&htim3);
+	  HAL_TIM_Base_Start(&htim3);
+	  HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_1);
+	  HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_2);
+
+};
 
 /*@brief : Function initalises GPIO pin 12, 13, 14, 15 to output pins without push pull
  * 		   This is used to drive the LEDs on the board.

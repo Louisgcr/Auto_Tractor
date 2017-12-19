@@ -42,6 +42,7 @@
 /* External variables --------------------------------------------------------*/
 extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 extern CAN_HandleTypeDef hcan1;
+extern ADC_HandleTypeDef hadc1;
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
@@ -95,6 +96,12 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
+void ADC_IRQHandler(void){
+
+	HAL_ADC_IRQHandler(&hadc1);
+
+}
+
 /**
 * @brief This function handles CAN1 RX0 interrupts.
 */
@@ -108,6 +115,7 @@ void CAN1_RX0_IRQHandler(void)
 
   /* USER CODE END CAN1_RX0_IRQn 1 */
 }
+
 
 /**
 * @brief This function handles USB On The Go FS global interrupt.
